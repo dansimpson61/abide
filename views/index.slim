@@ -9,5 +9,5 @@ div class="main-content"
 
 div class="garden"
   h2 Garden
-  - @page_data[:park].each do |collection|
-    == slim :'_partials/_collection', locals: { collection: collection }
+  - @page_data[:garden].each do |collection_name, items|
+    == slim :'_partials/_collection', locals: { collection: { collection_name => items.map(&:name) } }
