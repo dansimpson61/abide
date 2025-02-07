@@ -21,7 +21,7 @@ namespace :db do
   desc "Reset the database (drop & recreate)"
   task :reset do
     puts "⚠️  Resetting database..."
-    File.delete("db/development.sqlite3") if File.exist?("db/development.sqlite3")
+    File.delete("db/abide.sqlite3") if File.exist?("db/abide.sqlite3")
     Rake::Task["db:migrate"].invoke
     Rake::Task["db:seed"].invoke
     puts "✅ Database reset complete."
