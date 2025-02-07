@@ -4,61 +4,49 @@ body {
   margin: 0;
   padding: 0;
   background-color: #f9f9f9;
-  line-height: 1.6;
+  display: grid;
+  grid-template-columns: 15% auto 20%;
+  grid-template-areas: "market main garden";
+  height: 100vh;
 }
 
-/* === PLACE STYLES === */
-.place {
-  border-radius: 8px;
-  padding: 20px;
-  margin: 20px auto;
-  background: white;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-  width: 90%;
-  transition: all 0.3s ease;
-}
-
-/* === COLLECTION STYLES === */
-.collection {
-  border-left: 5px solid #007BFF;
+/* === MARKET STYLES (Left Column) === */
+.market {
+  grid-area: market;
+  width: 100%;
+  background: #f4f4f4;
   padding: 10px;
-  margin-bottom: 15px;
-  background: #eef6fc;
-  transition: background 0.3s ease;
+  border-right: 2px solid #ccc;
+  overflow-y: auto;
 }
 
-.collection:hover {
-  background: #ddeffb;
+/* === MAIN CONTENT STYLES === */
+.main-content {
+  grid-area: main;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-/* === ITEM STYLES === */
-.item {
-  padding: 8px;
-  margin: 5px 0;
-  background: #ffffff;
-  border-radius: 5px;
-  cursor: grab;
-  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+/* === GARDEN STYLES (Right Column) === */
+.garden {
+  grid-area: garden;
+  width: 100%;
+  background: #e8f5e9;
+  padding: 10px;
+  border-left: 2px solid #ccc;
+  overflow-y: auto;
 }
 
-.item:hover {
-  background: #f0f0f0;
-}
-
-/* === SORTABLEJS STYLES === */
-.sortable-ghost {
-  opacity: 0.5;
-  background: #d0e6ff;
-}
-
-.sortable-chosen {
-  background: #bbdefb;
-}
-
-/* === RESPONSIVE === */
+/* === RESPONSIVENESS === */
 @media (max-width: 768px) {
-  .place {
-    width: 100%;
-    padding: 10px;
+  body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "market"
+      "main"
+      "garden";
+  }
+  .market, .garden {
+    border: none;
   }
 }
