@@ -1,0 +1,62 @@
+/* === Reset & Base Styles === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f9f9f9;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* === Place Styling === */
+.place {
+  flex: 1 1 300px; /* Allows dynamic resizing */
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.place:hover {
+  transform: translateY(-2px);
+}
+
+.place h2 {
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+/* === Collection Styling === */
+.collection {
+  padding: 10px;
+  border-left: 4px solid #007BFF;
+  background: #eef6fc;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.collection h3 {
+  font-size: 1.2rem;
+  color: #007BFF;
+}
+
+/* === Item Styling === */
+.item {
+  padding: 8px;
+  margin: 5px 0;
+  background: #f3f8ee;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.item:hover {
+  background: #dff0d8;
+}
