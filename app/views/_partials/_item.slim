@@ -1,6 +1,10 @@
-div class="item" data-type=(item[:type] || "Unknown") data-status=(item[:status] || "unknown")
-  p = item[:name] || "Unnamed Item"
-  ul
-    - item.each do |key, value|
-      - unless [:id, :name, :order].include?(key)  # Skip metadata fields
-        li <strong>#{key.capitalize}:</strong> #{value}
+- if item.is_a?(Hash) && item[:name]
+  div class="item" data-type=(item[:type] || "Unknown") data-status=(item[:status] || "unknown")
+    p = item[:name]
+    ul
+      - item.each do |key, value|
+        - unless [:id, :order, :created_at, :updated_at].include?(key)  # Skip metadata fields
+          li <strong>#{key.capitalize}:</strong> #{value}
+- else
+  div class="item error"
+    p ⚠️ Invalid item detected.

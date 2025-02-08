@@ -10,7 +10,7 @@ helpers do
   def fetch_page_data
     {
       market: [{ portfolio: ["Stocks", "Bonds", "Real Estate"] }],
-      garden: Reflection.order(:order).all.map(&:values)  # Send raw database data to the view
+      garden: Reflection.dataset_to_h  # ✅ Use the dataset method
     }
   end
 end
