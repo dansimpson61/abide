@@ -1,0 +1,8 @@
+div class="collection" data-controller="sortable"
+  - collection.each do |collection_name, items|
+    h3 = collection_name.capitalize
+    - if items && !items.empty?
+      - items.each do |item|
+        == slim :'_partials/_item', locals: { item: item }
+    - else
+      p No items in this collection.
