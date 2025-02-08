@@ -1,0 +1,17 @@
+div class="market"
+  h2 Market
+  - @page_data[:market]&.each do |collection|
+    == slim :'_partials/_collection', locals: { collection: collection }
+
+div class="main-content"
+  h1 Abide
+  p This is where we organize and reflect.
+
+div class="garden"
+  h2 Garden
+  - if @page_data[:garden] && !@page_data[:garden].empty?
+    - @page_data[:garden].each do |item|
+      div class="row" data-type=item[:type]
+        p == item[:name]
+  - else
+    p No reflections yet. Start adding some!
