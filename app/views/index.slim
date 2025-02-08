@@ -8,10 +8,4 @@ div class="main-content"
   p This is where we organize and reflect.
 
 div class="garden"
-  h2 Garden
-  - if @page_data[:garden] && !@page_data[:garden].empty?
-    - @page_data[:garden].each do |item|
-      div class="row" data-type=item[:type]
-        p == item[:name]
-  - else
-    p No reflections yet. Start adding some!
+  == slim :'_partials/_place', locals: { place_name: "Garden", collections: [{ "Garden Path" => @page_data[:garden] }] }

@@ -1,0 +1,4 @@
+div class="place"
+  h2 = place_name.capitalize
+  - collections.each do |collection|
+    == slim :'_partials/_collection', locals: { collection: collection }
