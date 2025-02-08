@@ -10,7 +10,7 @@ helpers do
   def fetch_page_data
     {
       market: [{ portfolio: ["Stocks", "Bonds", "Real Estate"] }],
-      garden: Reflection.order(:order).all.map { |r| { name: r.name, type: r.type, status: r.status } }
+      garden: Reflection.order(:order).all.map(&:values)  # Send raw database data to the view
     }
   end
 end

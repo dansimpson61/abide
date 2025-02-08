@@ -1,2 +1,6 @@
-div class="item" data-type=item[:type] data-status=item[:status]
-  p = item[:name]
+div class="item" data-type=(item[:type] || "Unknown") data-status=(item[:status] || "unknown")
+  p = item[:name] || "Unnamed Item"
+  ul
+    - item.each do |key, value|
+      - unless [:id, :name, :order].include?(key)  # Skip metadata fields
+        li <strong>#{key.capitalize}:</strong> #{value}
