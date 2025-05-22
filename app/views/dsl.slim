@@ -1,0 +1,17 @@
+/ app/views/dsl.slim
+doctype html
+html
+  head
+    title Stimulus Parameter Test
+  body
+    h1 Stimulus Filter Parameter Testing
+
+    h2 Trial by error
+
+    stimulus:
+      div toggle_panel='The Garden'
+        p Being ...
+        ul sortable=nil
+          li editable_text=:name
+          div editable_list=:status
+        p ... and belonging

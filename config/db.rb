@@ -1,11 +1,13 @@
 require "sequel"
 require "sqlite3"
 
-DB = Sequel.connect("sqlite://db/abide.sqlite3")
+DB_PATH = "db/abide.db"  # ✅ Force a single shared database
+
+DB = Sequel.connect("sqlite://#{DB_PATH}")
 
 begin
   DB.test_connection
-  puts "✅ Database Connection Established."
+  puts "✅ Database Connection Established: Using #{DB_PATH}"
 rescue => e
   puts "❌ Database Connection Failed: #{e.message}"
   exit 1

@@ -1,4 +1,7 @@
-div class="place"
+div [class="garden" 
+    data-controller="toggle-panel" 
+    data-toggle-panel-target="panel" 
+    data-action="click->toggle-panel#persist"]
   h2 = place_name.capitalize
   - collections.each do |collection|
     == slim :'_partials/_collection', locals: { collection: collection }

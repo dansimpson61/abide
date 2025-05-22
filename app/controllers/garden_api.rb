@@ -7,8 +7,16 @@ class GardenAPI < Sinatra::Base
     content_type :json
     headers "Access-Control-Allow-Origin" => "*"
   
+    if request.request_method == "OPTIONS"
+      response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
+      response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+      halt 200
+    end
+  
     if ["POST", "PATCH", "DELETE"].include?(request.request_method)
-      halt 415, { error: "Unsupported media type: Requires application/json" }.to_json unless request.content_type == "application/json"
+      unless request.content_type == "application/json" || request.env["CONTENT_TYPE"] == "application/json"
+        halt 415, { error: "Unsupported media type: Requires application/json" }.to_json
+      end
     end
   end
 
@@ -30,42 +38,49 @@ class GardenAPI < Sinatra::Base
     set :show_exceptions, false
   end
 
-  ##########################################
-  # For test and development only
-  delete "/api/garden/reflections/delete_all" do
-    halt 403, { error: "Forbidden in production" }.to_json if settings.production?
+  patch "/garden/reflections/reorder" do
     handle_errors do
-      Reflection.dataset.delete 
-      { success: true }.to_json
-    end
-  end
-  ##########################################
+      request_body = request.body.read
+      halt 400, { error: "Missing JSON payload" }.to_json if request_body.strip.empty?
 
-  patch "/api/garden/reflections/reorder" do
-    handle_errors do
-      data = JSON.parse(request.body.read)
-      
+      begin
+        data = JSON.parse(request_body)
+      rescue JSON::ParserError
+        halt 400, { error: "Invalid JSON format" }.to_json
+      end
+
+      unless data.is_a?(Hash) && data.key?("reflections") && data["reflections"].is_a?(Array)
+        halt 400, { error: "Invalid request structure. Expected { reflections: [...] }" }.to_json
+      end
+
+      missing_ids = []
       DB.transaction do
         data["reflections"].each do |wp_data|
-          wp = Reflection[wp_data["id"]]
-          halt(404, { error: "Reflection #{wp_data["id"]} not found" }.to_json) unless wp
-          wp.update(order: wp_data["order"])
+          id = wp_data["id"].to_i  # ✅ Ensure ID is an Integer
+          reflection = Reflection[id]
+
+          unless reflection
+            missing_ids << id
+            next  # Don't halt the transaction, collect missing IDs instead
+          end
+
+          reflection.update(order: wp_data["order"])
         end
       end
-      
+
       { success: true }.to_json
     end
   end
 
-  # GET /api/garden/reflections
-  get "/api/garden/reflections" do
+  # GET /garden/reflections
+  get "/garden/reflections" do
     handle_errors do
       Reflection.order(:order).all.map(&:values).to_json
     end
   end
 
-  # POST /api/garden/reflections
-  post "/api/garden/reflections" do
+  # POST /garden/reflections
+  post "/garden/reflections" do
     handle_errors do
       data = JSON.parse(request.body.read)
       reflection = Reflection.create(data)
@@ -74,20 +89,20 @@ class GardenAPI < Sinatra::Base
     end
   end
 
-  # GET /api/garden/reflections/:id
-  get "/api/garden/reflections/:id" do
+  # GET /garden/reflections/:id
+  get "/garden/reflections/id/:id" do
     handle_errors do
       reflection = Reflection[params[:id]]
-      halt 404, { error: "Reflection not found" }.to_json unless reflection
+      halt 404, { error: "Reflection not found: id:#{params[:id]} could not be gotten" }.to_json unless reflection
       reflection.values.to_json
     end
   end
 
-  # PATCH /api/garden/reflections/:id
-  patch "/api/garden/reflections/:id" do
+  # PATCH /garden/reflections/:id
+  patch "/garden/reflections/id/:id" do
     handle_errors do
       reflection = Reflection[params[:id]]
-      halt 404, { error: "Reflection not found" }.to_json unless reflection
+      halt 404, { error: "Reflection not found: id:#{params[:id]} could not be patched" }.to_json unless reflection
 
       data = JSON.parse(request.body.read)
       reflection.update(data.compact) # Ignore `nil` fields
@@ -95,11 +110,11 @@ class GardenAPI < Sinatra::Base
     end
   end
   
-  # DELETE /api/garden/reflections/:id
-  delete "/api/garden/reflections/:id" do
+  # DELETE /garden/reflections/id/:id
+  delete "/garden/reflections/:id" do
     handle_errors do
       reflection = Reflection[params[:id]]
-      halt 404, { error: "Reflection not found" }.to_json unless reflection
+      halt 404, { error: "Reflection not found: id:#{params[:id]} could not be deleted" }.to_json unless reflection
       reflection.destroy
       { success: true }.to_json
     end

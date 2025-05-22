@@ -1,11 +1,12 @@
-div class="market"
-  h2 Market
-  - @page_data[:market]&.each do |collection|
-    == slim :'_partials/_collection', locals: { collection: collection }
+/div class="market"
+/  h2 Market
+/  - @page_data[:market]&.each do |collection|
+/    == slim :'_partials/_collection', locals: { collection: collection }
 
 div class="main-content"
   h1 Abide
   p This is where we organize and reflect.
 
-div class="garden"
-  == slim :'_partials/_place', locals: { place_name: "Garden", collections: [{ "Garden Path" => @page_data[:garden] }] }
+/div class="garden"
+== slim :'_partials/_place', locals: { place_name: "Garden", collections: [{ "Garden Path" => reflections }] }
+  /== slim :'_partials/_place', locals: { place_name: "Garden", collections: [{ "Garden Path" => @page_data[:garden] }] }

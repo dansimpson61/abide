@@ -1,0 +1,2311 @@
+Table of Contents
+=================
+.
+├── abide Development Guide.md
+├── abide.txt
+├── app
+│   ├── controllers
+│   │   ├── dsl_tests_controller.rb
+│   │   └── garden_api.rb
+│   ├── helpers
+│   │   ├── application_helper.rb
+│   │   ├── dsl_helpers.rb
+│   │   └── sitemap_helper.rb
+│   ├── models
+│   │   └── reflection.rb
+│   └── views
+│       ├── dsl.slim
+│       ├── dsl_tests
+│       │   ├── _editable_list.slim
+│       │   ├── _editable_text.slim
+│       │   ├── _sortable.slim
+│       │   └── _toggle_panel.slim
+│       ├── editable_list.slim
+│       ├── editable_text.slim
+│       ├── index.slim
+│       ├── layout.slim
+│       ├── _partials
+│       │   ├── _collection.slim
+│       │   ├── _item.slim
+│       │   └── _place.slim
+│       ├── shared
+│       │   ├── _head.slim
+│       │   └── _section.slim
+│       ├── sitemap.slim
+│       ├── slim_filters.slim
+│       ├── sortable.slim
+│       ├── test_dsl_classy.slim
+│       ├── test_dsl.slim
+│       ├── test_ui.slim
+│       └── toggle_panel.slim
+├── app.rb
+├── config
+│   ├── db.rb
+│   └── routes.rb
+├── config.ru
+├── db
+│   ├── migrations
+│   │   └── 001_create_reflections.rb
+│   └── seeds.rb
+├── Gemfile
+├── Gemfile.lock
+├── lib
+│   └── slim_filters.rb
+├── public
+│   ├── css
+│   │   ├── abide.css
+│   │   ├── et-book
+│   │   │   ├── et-book-bold-line-figures
+│   │   │   │   ├── et-book-bold-line-figures.eot
+│   │   │   │   ├── et-book-bold-line-figures.svg
+│   │   │   │   ├── et-book-bold-line-figures.ttf
+│   │   │   │   └── et-book-bold-line-figures.woff
+│   │   │   ├── et-book-display-italic-old-style-figures
+│   │   │   │   ├── et-book-display-italic-old-style-figures.eot
+│   │   │   │   ├── et-book-display-italic-old-style-figures.svg
+│   │   │   │   ├── et-book-display-italic-old-style-figures.ttf
+│   │   │   │   └── et-book-display-italic-old-style-figures.woff
+│   │   │   ├── et-book-roman-line-figures
+│   │   │   │   ├── et-book-roman-line-figures.eot
+│   │   │   │   ├── et-book-roman-line-figures.svg
+│   │   │   │   ├── et-book-roman-line-figures.ttf
+│   │   │   │   └── et-book-roman-line-figures.woff
+│   │   │   ├── et-book-roman-old-style-figures
+│   │   │   │   ├── et-book-roman-old-style-figures.eot
+│   │   │   │   ├── et-book-roman-old-style-figures.svg
+│   │   │   │   ├── et-book-roman-old-style-figures.ttf
+│   │   │   │   └── et-book-roman-old-style-figures.woff
+│   │   │   └── et-book-semi-bold-old-style-figures
+│   │   │       ├── et-book-semi-bold-old-style-figures.eot
+│   │   │       ├── et-book-semi-bold-old-style-figures.svg
+│   │   │       ├── et-book-semi-bold-old-style-figures.ttf
+│   │   │       └── et-book-semi-bold-old-style-figures.woff
+│   │   ├── sitemap.css
+│   │   └── tufte.css
+│   └── js
+│       ├── application.js
+│       └── controllers
+│           ├── server_controller.js
+│           ├── sortable_controller.js
+│           └── ui_controllers.js
+├── Rakefile
+└── spec
+    ├── controllers
+    │   ├── garden_api_spec.rb
+    │   └── sitemap_spec.rb
+    ├── features
+    │   └── drag_and_drop_spec.rb
+    ├── models
+    │   └── reflection_spec.rb
+    └── spec_helper.rb
+
+27 directories, 71 files
+
+----------------------------------------------------
+File Contents
+=============
+----------------------------------------------------
+File: ./abide.txt
+----------------------------------------------------
+
+----------------------------------------------------
+File: ./public/js/application.js
+----------------------------------------------------
+/* ========== Stimulus Initialization ========== */
+window.StimulusApp = Stimulus.Application.start();
+console.log("🎛️  StimulusApp initialized:", window.StimulusApp);
+
+/* ========== Controller Registration ========== */
+const registerController = (name, ControllerClass) => {
+  console.log(`🎯 Registering ${name} controller`);
+  try {
+    StimulusApp.register(name, ControllerClass);
+  } catch (error) {
+    console.error(`💥 ${name} registration failed:`, error);
+  }
+};
+/* ========== Application Boot ========== */
+console.log("🌱 Application.js loaded");
+console.assert(window.StimulusApp, "StimulusApp not initialized!");
+
+----------------------------------------------------
+File: ./public/js/controllers/sortable_controller.js
+----------------------------------------------------
+document.addEventListener("DOMContentLoaded", function () {
+  class SortableController extends Stimulus.Controller {
+    static targets = ["list"];
+  
+    connect() {
+      this.sortable = Sortable.create(this.listTarget, {
+        onEnd: async (event) => {
+          const sortedItems = Array.from(event.to.children).map((item, index) => ({
+            id: parseInt(item.dataset.id, 10),  // Get id from data-id attribute
+            order: index + 1 // Calculate new order based on position
+          }));
+          const sortedEvent = new CustomEvent('sorted', { detail: { items: sortedItems }});
+          this.listTarget.dispatchEvent(sortedEvent);
+        }
+      });
+    }
+    disconnect() {
+      this.sortable.destroy();
+    }
+  }
+  StimulusApp.register('sortable', SortableController);
+});
+
+----------------------------------------------------
+File: ./public/js/controllers/server_controller.js
+----------------------------------------------------
+// server_controller.js
+document.addEventListener("DOMContentLoaded", function () {
+//   class ServerController extends Stimulus.Controller {
+//     save(event) {
+//       const sortedData = event.detail.items;
+//         fetch("/api/garden/reflections/reorder", {
+//           method: "PATCH",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({ reflections: sortedData })
+//         })
+//     }
+//   }
+  StimulusApp.register('server', ServerController);
+  /* ========== Extended Server Controller with Update ========== */
+  class ServerController extends Stimulus.Controller {
+    connect() {
+      // Listen for update events from both editable text and list controllers.
+      this.element.addEventListener("updateField", this.updateField.bind(this));
+      this.element.addEventListener("updateListItem", this.updateField.bind(this));
+    }
+
+    // Existing 'save' method for sortable data remains here.
+    save(event) {
+      const sortedData = event.detail.items;
+      fetch("/api/garden/reflections/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reflections: sortedData })
+      });
+    }
+
+    updateField(event) {
+      const { id, field, value } = event.detail;
+      if (!id) {
+        console.error("Missing id for update. Ensure the element has a data-id attribute.");
+        return;
+      }
+      // Send an update request to the backend for the given id.
+      fetch(`/api/garden/reflections/update/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field: field, value: value })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Update failed");
+          }
+          return response.json();
+        })
+        .then(data => console.log("Update successful:", data))
+        .catch(error => console.error("Error updating field:", error));
+    }
+  }
+  StimulusApp.register('server', ServerController);
+});
+----------------------------------------------------
+File: ./public/js/controllers/ui_controllers.js
+----------------------------------------------------
+//ui_controllers.js
+document.addEventListener("DOMContentLoaded", function () {
+  window.StimulusApp = Stimulus.Application.start();
+  console.log("🎛️ StimulusApp initialized:", window.StimulusApp);
+
+  /* ========== Sidebar Toggle Controller ========== */
+  class TogglePanelController extends Stimulus.Controller {
+    static targets = ["panel"];
+
+    connect() {
+      document.addEventListener("click", this.handleOutsideClick.bind(this));
+    }
+
+    show() {
+      if (!this.panelTarget.classList.contains("pinned")) {
+        this.panelTarget.classList.add("visible");
+      }
+    }
+
+    persist(event) {
+      event.stopPropagation(); // Prevent bubbling to document click listener
+      this.panelTarget.classList.add("pinned");
+      this.panelTarget.classList.add("visible"); // Ensure it stays visible
+    }
+
+    hide() {
+      if (!this.panelTarget.classList.contains("pinned")) {
+        this.panelTarget.classList.remove("visible");
+      }
+    }
+
+    dismiss() {
+      this.panelTarget.classList.remove("visible", "pinned");
+    }
+
+    handleOutsideClick(event) {
+      if (!this.panelTarget.contains(event.target) && this.panelTarget.classList.contains("visible")) {
+        this.dismiss();
+      }
+    }
+  }
+
+  StimulusApp.register("toggle-panel", TogglePanelController);
+
+  /* ========== Sortable Controller (Reordering UI) ========== */
+  class SortableController extends Stimulus.Controller {
+    static targets = ["list"];
+
+    connect() {
+      this.sortable = Sortable.create(this.listTarget, {
+        onEnd: (event) => {
+          const sortedItems = Array.from(event.to.children).map((item, index) => ({
+            id: parseInt(item.dataset.id, 10),
+            order: index + 1
+          }));
+          const sortedEvent = new CustomEvent("sorted", { detail: { items: sortedItems } });
+          this.listTarget.dispatchEvent(sortedEvent);
+        }
+      });
+    }
+
+    disconnect() {
+      this.sortable.destroy();
+    }
+  }
+  StimulusApp.register("sortable", SortableController);
+
+  /* ========== Editable Text Controller ========== */
+  class EditableTextController extends Stimulus.Controller {
+    connect() {
+      // When the element is clicked, start inline editing.
+      this.element.addEventListener("click", this.startEditing.bind(this));
+    }
+    
+    startEditing() {
+      // Prevent starting editing if already in edit mode.
+      if (this.editing) return;
+      this.editing = true;
+
+      // Save the original text in case editing is cancelled.
+      this.originalText = this.element.textContent.trim();
+      
+      // Create an input element pre-filled with the current text.
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = this.originalText;
+      input.classList.add("editable-text-input");
+      
+      // Listen for blur (losing focus) and key events (Enter/Escape).
+      input.addEventListener("blur", this.finishEditing.bind(this));
+      input.addEventListener("keydown", this.handleKeydown.bind(this));
+      
+      // Replace the element’s content with the input.
+      this.element.innerHTML = "";
+      this.element.appendChild(input);
+      input.focus();
+    }
+    
+    handleKeydown(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.target.blur();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.cancelEditing();
+      }
+    }
+    
+    finishEditing(event) {
+      const newValue = event.target.value;
+      this.editing = false;
+      // Restore the element’s content.
+      this.element.textContent = newValue;
+      
+      // Dispatch a custom event to notify the server of the update.
+      // Assumes that the element has data attributes for 'id' and 'field'.
+      const updateEvent = new CustomEvent("updateField", {
+        detail: {
+          id: this.element.dataset.id,
+          field: this.data.get("field") || "text",
+          value: newValue
+        },
+        bubbles: true
+      });
+      this.element.dispatchEvent(updateEvent);
+    }
+    
+    cancelEditing() {
+      this.editing = false;
+      // Restore the original text if editing is cancelled.
+      this.element.textContent = this.originalText;
+    }
+  }
+  StimulusApp.register("editable-text", EditableTextController);
+
+  /* ========== Editable List Controller ========== */
+  class EditableListController extends Stimulus.Controller {
+    connect() {
+      // Delegate click events: when an existing list item is clicked, allow inline editing.
+      this.element.addEventListener("click", (event) => {
+        const listItem = event.target.closest(".editable-list-item");
+        if (listItem && !listItem.querySelector("input")) {
+          this.startEditing(listItem);
+        }
+      });
+      
+      // Append an "Add Item" button to the list.
+      this.addButton = document.createElement("button");
+      this.addButton.textContent = "Add Item";
+      this.addButton.classList.add("editable-list-add-button");
+      this.addButton.addEventListener("click", this.addItem.bind(this));
+      this.element.appendChild(this.addButton);
+    }
+    
+    startEditing(listItem) {
+      // Skip if the list item is already being edited.
+      if (listItem.dataset.editing === "true") return;
+      listItem.dataset.editing = "true";
+      
+      const currentText = listItem.textContent.trim();
+      listItem.dataset.original = currentText;
+      
+      // Create an input element for editing.
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = currentText;
+      input.classList.add("editable-list-input");
+      
+      input.addEventListener("blur", () => this.finishEditing(listItem, input));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          input.blur();
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          this.cancelEditing(listItem);
+        }
+      });
+      
+      listItem.innerHTML = "";
+      listItem.appendChild(input);
+      input.focus();
+    }
+    
+    finishEditing(listItem, input) {
+      const newValue = input.value;
+      listItem.dataset.editing = "false";
+      listItem.textContent = newValue;
+      
+      // Dispatch an event to update the edited list item.
+      const updateEvent = new CustomEvent("updateListItem", {
+        detail: {
+          id: listItem.dataset.id, // May be empty for new items.
+          field: this.data.get("field") || "list",
+          value: newValue
+        },
+        bubbles: true
+      });
+      listItem.dispatchEvent(updateEvent);
+    }
+    
+    cancelEditing(listItem) {
+      listItem.dataset.editing = "false";
+      listItem.textContent = listItem.dataset.original || "";
+    }
+    
+    addItem(event) {
+      event.preventDefault();
+      
+      // Create a new list item element.
+      const newItem = document.createElement("div"); // Use <li> if preferred.
+      newItem.classList.add("editable-list-item");
+      newItem.textContent = "New item";
+      newItem.dataset.id = ""; // New items may not have an id yet.
+      
+      // Insert the new item just before the "Add Item" button.
+      this.element.insertBefore(newItem, this.addButton);
+      
+      // Begin editing immediately.
+      this.startEditing(newItem);
+      
+      // Optionally, dispatch an event indicating a new item has been created.
+      const newItemEvent = new CustomEvent("newListItem", {
+        detail: {
+          field: this.data.get("field") || "list",
+          value: "New item"
+        },
+        bubbles: true
+      });
+      newItem.dispatchEvent(newItemEvent);
+    }
+  }
+  StimulusApp.register("editable-list", EditableListController);
+
+});
+
+----------------------------------------------------
+File: ./public/css/sitemap.css
+----------------------------------------------------
+/* body {
+  font-family: Arial, sans-serif;
+  background: #f9f9f9;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+} */
+
+.sitemap-tree {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.sitemap-tree li {
+  margin-bottom: 5px;
+}
+
+.method {
+  font-weight: bold;
+  color: #007BFF;
+  margin-right: 5px;
+}
+
+.path {
+  font-family: monospace;
+  color: #333;
+}
+
+.params {
+  color: #666;
+  font-size: 0.9em;
+}
+
+----------------------------------------------------
+File: ./public/css/tufte.css
+----------------------------------------------------
+@charset "UTF-8";
+
+/* Import ET Book styles
+   adapted from https://github.com/edwardtufte/et-book/blob/gh-pages/et-book.css */
+
+@font-face {
+    font-family: "et-book";
+    src: url("et-book/et-book-roman-line-figures/et-book-roman-line-figures.eot");
+    src: url("et-book/et-book-roman-line-figures/et-book-roman-line-figures.eot?#iefix") format("embedded-opentype"), url("et-book/et-book-roman-line-figures/et-book-roman-line-figures.woff") format("woff"), url("et-book/et-book-roman-line-figures/et-book-roman-line-figures.ttf") format("truetype"), url("et-book/et-book-roman-line-figures/et-book-roman-line-figures.svg#etbookromanosf") format("svg");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "et-book";
+    src: url("et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.eot");
+    src: url("et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.eot?#iefix") format("embedded-opentype"), url("et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.woff") format("woff"), url("et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.ttf") format("truetype"), url("et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.svg#etbookromanosf") format("svg");
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "et-book";
+    src: url("et-book/et-book-bold-line-figures/et-book-bold-line-figures.eot");
+    src: url("et-book/et-book-bold-line-figures/et-book-bold-line-figures.eot?#iefix") format("embedded-opentype"), url("et-book/et-book-bold-line-figures/et-book-bold-line-figures.woff") format("woff"), url("et-book/et-book-bold-line-figures/et-book-bold-line-figures.ttf") format("truetype"), url("et-book/et-book-bold-line-figures/et-book-bold-line-figures.svg#etbookromanosf") format("svg");
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "et-book-roman-old-style";
+    src: url("et-book/et-book-roman-old-style-figures/et-book-roman-old-style-figures.eot");
+    src: url("et-book/et-book-roman-old-style-figures/et-book-roman-old-style-figures.eot?#iefix") format("embedded-opentype"), url("et-book/et-book-roman-old-style-figures/et-book-roman-old-style-figures.woff") format("woff"), url("et-book/et-book-roman-old-style-figures/et-book-roman-old-style-figures.ttf") format("truetype"), url("et-book/et-book-roman-old-style-figures/et-book-roman-old-style-figures.svg#etbookromanosf") format("svg");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Tufte CSS styles */
+html {
+    font-size: 15px;
+}
+
+body {
+    width: 87.5%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 12.5%;
+    font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+    background-color: #fffff8;
+    color: #111;
+    max-width: 1400px;
+    counter-reset: sidenote-counter;
+}
+
+/* Adds dark mode */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #151515;
+        color: #ddd;
+    }
+}
+
+h1 {
+    font-weight: 400;
+    margin-top: 4rem;
+    margin-bottom: 1.5rem;
+    font-size: 3.2rem;
+    line-height: 1;
+}
+
+h2 {
+    font-style: italic;
+    font-weight: 400;
+    margin-top: 2.1rem;
+    margin-bottom: 1.4rem;
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+h3 {
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.7rem;
+    margin-top: 2rem;
+    margin-bottom: 1.4rem;
+    line-height: 1;
+}
+
+hr {
+    display: block;
+    height: 1px;
+    width: 55%;
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 1em 0;
+    padding: 0;
+}
+
+p.subtitle {
+    font-style: italic;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+    display: block;
+    line-height: 1;
+}
+
+.numeral {
+    font-family: et-book-roman-old-style;
+}
+
+.danger {
+    color: red;
+}
+
+article {
+    padding: 5rem 0rem;
+}
+
+section {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+p,
+dl,
+ol,
+ul {
+    font-size: 1.4rem;
+    line-height: 2rem;
+}
+
+p {
+    margin-top: 1.4rem;
+    margin-bottom: 1.4rem;
+    padding-right: 0;
+    vertical-align: baseline;
+}
+
+/* Chapter Epigraphs */
+div.epigraph {
+    margin: 5em 0;
+}
+
+div.epigraph > blockquote {
+    margin-top: 3em;
+    margin-bottom: 3em;
+}
+
+div.epigraph > blockquote,
+div.epigraph > blockquote > p {
+    font-style: italic;
+}
+
+div.epigraph > blockquote > footer {
+    font-style: normal;
+}
+
+div.epigraph > blockquote > footer > cite {
+    font-style: italic;
+}
+/* end chapter epigraphs styles */
+
+blockquote {
+    font-size: 1.4rem;
+}
+
+blockquote p {
+    width: 55%;
+    margin-right: 40px;
+}
+
+blockquote footer {
+    width: 55%;
+    font-size: 1.1rem;
+    text-align: right;
+}
+
+section > p,
+section > footer,
+section > table {
+    width: 55%;
+}
+
+/* 50 + 5 == 55, to be the same width as paragraph */
+section > dl,
+section > ol,
+section > ul {
+    width: 50%;
+    -webkit-padding-start: 5%;
+}
+
+dt:not(:first-child),
+li:not(:first-child) {
+    margin-top: 0.25rem;
+}
+
+figure {
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+    max-width: 55%;
+    -webkit-margin-start: 0;
+    -webkit-margin-end: 0;
+    margin: 0 0 3em 0;
+}
+
+figcaption {
+    float: right;
+    clear: right;
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    vertical-align: baseline;
+    position: relative;
+    max-width: 40%;
+}
+
+figure.fullwidth figcaption {
+    margin-right: 24%;
+}
+
+a:link,
+a:visited {
+    color: inherit;
+    text-underline-offset: 0.1em;
+    text-decoration-thickness: 0.05em;
+}
+
+/* Sidenotes, margin notes, figures, captions */
+img {
+    max-width: 100%;
+}
+
+.sidenote,
+.marginnote {
+    float: right;
+    clear: right;
+    margin-right: -60%;
+    width: 50%;
+    margin-top: 0.3rem;
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    line-height: 1.3;
+    vertical-align: baseline;
+    position: relative;
+}
+
+.sidenote-number {
+    counter-increment: sidenote-counter;
+}
+
+.sidenote-number:after,
+.sidenote:before {
+    font-family: et-book-roman-old-style;
+    position: relative;
+    vertical-align: baseline;
+}
+
+.sidenote-number:after {
+    content: counter(sidenote-counter);
+    font-size: 1rem;
+    top: -0.5rem;
+    left: 0.1rem;
+}
+
+.sidenote:before {
+    content: counter(sidenote-counter) " ";
+    font-size: 1rem;
+    top: -0.5rem;
+}
+
+blockquote .sidenote,
+blockquote .marginnote {
+    margin-right: -82%;
+    min-width: 59%;
+    text-align: left;
+}
+
+div.fullwidth,
+table.fullwidth {
+    width: 100%;
+}
+
+div.table-wrapper {
+    overflow-x: auto;
+    font-family: "Trebuchet MS", "Gill Sans", "Gill Sans MT", sans-serif;
+}
+
+.sans {
+    font-family: "Gill Sans", "Gill Sans MT", Calibri, sans-serif;
+    letter-spacing: .03em;
+}
+
+code, pre > code {
+    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 1.0rem;
+    line-height: 1.42;
+    -webkit-text-size-adjust: 100%; /* Prevent adjustments of font size after orientation changes in iOS. See https://github.com/edwardtufte/tufte-css/issues/81#issuecomment-261953409 */
+}
+
+.sans > code {
+    font-size: 1.2rem;
+}
+
+h1 > code,
+h2 > code,
+h3 > code {
+    font-size: 0.80em;
+}
+
+.marginnote > code,
+.sidenote > code {
+    font-size: 1rem;
+}
+
+pre > code {
+    font-size: 0.9rem;
+    width: 52.5%;
+    margin-left: 2.5%;
+    overflow-x: auto;
+    display: block;
+}
+
+pre.fullwidth > code {
+    width: 90%;
+}
+
+.fullwidth {
+    max-width: 90%;
+    clear:both;
+}
+
+span.newthought {
+    font-variant: small-caps;
+    font-size: 1.2em;
+}
+
+input.margin-toggle {
+    display: none;
+}
+
+label.sidenote-number {
+    display: inline-block;
+    max-height: 2rem; /* should be less than or equal to paragraph line-height */
+}
+
+label.margin-toggle:not(.sidenote-number) {
+    display: none;
+}
+
+.iframe-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    padding-top: 25px;
+    height: 0;
+}
+
+.iframe-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 760px) {
+    body {
+        width: 84%;
+        padding-left: 8%;
+        padding-right: 8%;
+    }
+
+    hr,
+    section > p,
+    section > footer,
+    section > table {
+        width: 100%;
+    }
+
+    pre > code {
+        width: 97%;
+    }
+
+    section > dl,
+    section > ol,
+    section > ul {
+        width: 90%;
+    }
+
+    figure {
+        max-width: 90%;
+    }
+
+    figcaption,
+    figure.fullwidth figcaption {
+        margin-right: 0%;
+        max-width: none;
+    }
+
+    blockquote {
+        margin-left: 1.5em;
+        margin-right: 0em;
+    }
+
+    blockquote p,
+    blockquote footer {
+        width: 100%;
+    }
+
+    label.margin-toggle:not(.sidenote-number) {
+        display: inline;
+    }
+
+    .sidenote,
+    .marginnote {
+        display: none;
+    }
+
+    .margin-toggle:checked + .sidenote,
+    .margin-toggle:checked + .marginnote {
+        display: block;
+        float: left;
+        left: 1rem;
+        clear: both;
+        width: 95%;
+        margin: 1rem 2.5%;
+        vertical-align: baseline;
+        position: relative;
+    }
+
+    label {
+        cursor: pointer;
+    }
+
+    div.table-wrapper,
+    table {
+        width: 85%;
+    }
+
+    img {
+        width: 100%;
+    }
+}
+
+----------------------------------------------------
+File: ./public/css/abide.css
+----------------------------------------------------
+/* === GLOBAL STYLES === */
+/* body {
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  background-color: #f9f9f9;
+  display: grid;
+  grid-template-columns: 15% auto 40%;
+  grid-template-areas: "market main garden";
+  height: 100vh;
+} */
+
+/* === MARKET STYLES (Left Column) === */
+/* .market {
+  grid-area: market;
+  width: 100%;
+  background: #f4f4f4;
+  padding: 10px;
+  border-right: 2px solid #ccc;
+  overflow-y: auto;
+} */
+
+/* === MAIN CONTENT STYLES === */
+/* .main-content {
+  grid-area: main;
+  padding: 20px;
+  overflow-y: auto;
+} */
+
+/* === GARDEN STYLES (Right Column) === */
+/* .garden {
+  grid-area: garden;
+  width: 100%;
+  background: #e8f5e9;
+  padding: 10px;
+  border-left: 2px solid #ccc;
+  overflow-y: auto;
+} */
+
+/* === Panel Defaults === */
+.market, .garden {
+  position: fixed;
+  top: 0;
+  width: 30%;
+  height: 100vh;
+  transition: transform 0.6s ease-in-out;
+}
+
+/* Market (Left) */
+.market {
+  left: 0;
+  transform: translateX(-95%);
+  border-right: 2px solid #ccc;
+}
+
+/* Garden (Right) */
+.garden {
+  right: 0;
+  transform: translateX(95%);
+  background: #e8f5e9;
+  border-left: 2px solid #ccc;
+}
+
+/* When Hovered */
+.market:hover, .market.visible {
+  transform: translateX(0);
+}
+
+.garden:hover, .garden.visible {
+  transform: translateX(0);
+}
+
+/* When Clicked (Pinned Open) */
+.market.pinned, .garden.pinned {
+  transform: translateX(0);
+}
+
+/* Edge Peek Indicators */
+.market::after, .garden::after {
+  content: "⮜"; /* Left and right arrow indicators */
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  font-size: 20px;
+  color: #444;
+}
+
+.market::after { right: -10px; }
+.garden::after { left: -10px; }
+
+/* 🎨 Row Backgrounds by Type */
+.item[data-type="Milestone"] { background-color: #eef6fc; border-left: 5px solid #007BFF; }
+.item[data-type="Feature"] { background-color: #f3f8ee; border-left: 5px solid #28a745; }
+.item[data-type="Task"] { background-color: #fcf6e5; border-left: 5px solid #ffc107; }
+
+/* Indentation Based on Type */
+.item[data-type="Milestone"] { font-weight: bold; margin-left: 0; width: 80%;}
+.item[data-type="Feature"] { margin-left: 2%; width: 78%;}
+.item[data-type="Task"] { margin-left: 4%; width: 76%;}
+
+/* === Sortable list === */
+li.item {
+  cursor: grab; /* Ensure it's draggable */
+}
+
+/* === RESPONSIVENESS === */
+@media (max-width: 768px) {
+  body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "market"
+      "main"
+      "garden";
+  }
+  .market, .garden {
+    border: none;
+  }
+}
+
+----------------------------------------------------
+File: ./app/controllers/garden_api.rb
+----------------------------------------------------
+require 'sinatra/base'
+require "json"
+require_relative "../models/reflection"
+
+class GardenAPI < Sinatra::Base
+  before do
+    content_type :json
+    headers "Access-Control-Allow-Origin" => "*"
+  
+    if request.request_method == "OPTIONS"
+      response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE"
+      response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+      halt 200
+    end
+  
+    if ["POST", "PATCH", "DELETE"].include?(request.request_method)
+      unless request.content_type == "application/json" || request.env["CONTENT_TYPE"] == "application/json"
+        halt 415, { error: "Unsupported media type: Requires application/json" }.to_json
+      end
+    end
+  end
+
+  helpers do
+    def handle_errors
+      yield
+    rescue JSON::ParserError
+      halt 400, { error: "Invalid JSON format" }.to_json
+    rescue Sequel::ValidationFailed => e
+      halt 422, { errors: e.errors.full_messages }.to_json
+    rescue Sequel::Error => e
+      halt 500, { error: "Database error: #{e.message}" }.to_json
+    rescue => e
+      halt 500, { error: "Unexpected error: #{e.message}" }.to_json
+    end
+  end
+
+  configure do
+    set :show_exceptions, false
+  end
+
+  patch "/garden/reflections/reorder" do
+    handle_errors do
+      request_body = request.body.read
+      halt 400, { error: "Missing JSON payload" }.to_json if request_body.strip.empty?
+
+      begin
+        data = JSON.parse(request_body)
+      rescue JSON::ParserError
+        halt 400, { error: "Invalid JSON format" }.to_json
+      end
+
+      unless data.is_a?(Hash) && data.key?("reflections") && data["reflections"].is_a?(Array)
+        halt 400, { error: "Invalid request structure. Expected { reflections: [...] }" }.to_json
+      end
+
+      missing_ids = []
+      DB.transaction do
+        data["reflections"].each do |wp_data|
+          id = wp_data["id"].to_i  # ✅ Ensure ID is an Integer
+          reflection = Reflection[id]
+
+          unless reflection
+            missing_ids << id
+            next  # Don't halt the transaction, collect missing IDs instead
+          end
+
+          reflection.update(order: wp_data["order"])
+        end
+      end
+
+      { success: true }.to_json
+    end
+  end
+
+  # GET /garden/reflections
+  get "/garden/reflections" do
+    handle_errors do
+      Reflection.order(:order).all.map(&:values).to_json
+    end
+  end
+
+  # POST /garden/reflections
+  post "/garden/reflections" do
+    handle_errors do
+      data = JSON.parse(request.body.read)
+      reflection = Reflection.create(data)
+      status 201
+      reflection.values.to_json
+    end
+  end
+
+  # GET /garden/reflections/:id
+  get "/garden/reflections/id/:id" do
+    handle_errors do
+      reflection = Reflection[params[:id]]
+      halt 404, { error: "Reflection not found: id:#{params[:id]} could not be gotten" }.to_json unless reflection
+      reflection.values.to_json
+    end
+  end
+
+  # PATCH /garden/reflections/:id
+  patch "/garden/reflections/id/:id" do
+    handle_errors do
+      reflection = Reflection[params[:id]]
+      halt 404, { error: "Reflection not found: id:#{params[:id]} could not be patched" }.to_json unless reflection
+
+      data = JSON.parse(request.body.read)
+      reflection.update(data.compact) # Ignore `nil` fields
+      reflection.values.to_json
+    end
+  end
+  
+  # DELETE /garden/reflections/id/:id
+  delete "/garden/reflections/:id" do
+    handle_errors do
+      reflection = Reflection[params[:id]]
+      halt 404, { error: "Reflection not found: id:#{params[:id]} could not be deleted" }.to_json unless reflection
+      reflection.destroy
+      { success: true }.to_json
+    end
+  end
+end
+
+----------------------------------------------------
+File: ./app/controllers/dsl_tests_controller.rb
+----------------------------------------------------
+class DslTestsController < ApplicationController
+  def toggle_panel
+    render partial: 'dsl_tests/toggle_panel'
+  end
+
+  def sortable
+    @reflections = ['Item 1', 'Item 2', 'Item 3'] # Example data
+    render partial: 'dsl_tests/sortable', locals: { reflections: @reflections }
+  end
+
+  def editable_text
+    render partial: 'dsl_tests/editable_text'
+  end
+
+  def editable_list
+    render partial: 'dsl_tests/editable_list'
+  end
+end 
+----------------------------------------------------
+File: ./app/models/reflection.rb
+----------------------------------------------------
+require "sequel"
+
+class Reflection < Sequel::Model
+  plugin :timestamps, update_on_create: true
+  plugin :validation_helpers
+
+  def validate
+    super
+    validates_presence [:name, :type, :status]
+    validates_includes ["Milestone", "Feature", "Task"], :type
+    validates_includes ["todo", "in-progress", "complete", "rethinking", "future"], :status
+  end
+
+  def before_create
+    self.order ||= (Reflection.max(:order) || 0) + 1
+    super
+  end
+
+  # ✅ Dataset-Level Transformation Method
+  def self.all_to_h
+    self.order(:order).all.map do |reflection|
+      reflection.values.transform_keys(&:to_sym) # Ensures all keys are Symbols for consistency
+    end
+  end
+end
+
+----------------------------------------------------
+File: ./app/views/index.slim
+----------------------------------------------------
+/div class="market"
+/  h2 Market
+/  - @page_data[:market]&.each do |collection|
+/    == slim :'_partials/_collection', locals: { collection: collection }
+
+div class="main-content"
+  h1 Abide
+  p This is where we organize and reflect.
+
+/div class="garden"
+== slim :'_partials/_place', locals: { place_name: "Garden", collections: [{ "Garden Path" => reflections }] }
+  /== slim :'_partials/_place', locals: { place_name: "Garden", collections: [{ "Garden Path" => @page_data[:garden] }] }
+
+----------------------------------------------------
+File: ./app/views/test_dsl_classy.slim
+----------------------------------------------------
+doctype html
+html
+  = render 'shared/head'
+  body
+    header
+      h1 DSL Classy Test Page
+      p Testing DSL filters: toggle_panel, sortable, editable_text, and editable_list.
+    
+    = render layout: 'shared/section', locals: { title: 'Toggle Panel Test' } do
+      = render 'dsl_tests/toggle_panel'
+    
+    = render layout: 'shared/section', locals: { title: 'Sortable Test' } do
+      = render 'dsl_tests/sortable'
+    
+    = render layout: 'shared/section', locals: { title: 'Editable Text Test' } do
+      = render 'dsl_tests/editable_text'
+    
+    = render layout: 'shared/section', locals: { title: 'Editable List Test' } do
+      = render 'dsl_tests/editable_list'
+
+----------------------------------------------------
+File: ./app/views/sitemap.slim
+----------------------------------------------------
+doctype html
+html
+  head
+    title Sitemap
+    link rel="stylesheet" href="/css/sitemap.css"
+  body
+    h1 Sitemap: Available Routes (#{routes.count})
+    ul.sitemap-tree
+      - routes.group_by { |route| route[:path].split('/')[1] || 'root' }.each do |section, section_routes|
+        li
+          strong = section.capitalize
+          ul
+            - section_routes.each do |route|
+              li
+                span.method= route[:method]
+                span.path= route[:path]
+                span.params= route[:params].any? ? "(#{route[:params].join(', ')})" : ""
+
+----------------------------------------------------
+File: ./app/views/sortable.slim
+----------------------------------------------------
+stimulus:
+  sortable: ul {'Garden Path': reflections}
+    li editable_text: :name
+----------------------------------------------------
+File: ./app/views/dsl_tests/_editable_text.slim
+----------------------------------------------------
+// This block uses "editable_text" to create a field bound to "name"
+| stimulus:
+|   editable_text: span :name
+p This tests an editable text field bound to the "name" attribute. 
+----------------------------------------------------
+File: ./app/views/dsl_tests/_sortable.slim
+----------------------------------------------------
+// This block uses the DSL keyword "sortable" and expects a local variable "reflections"
+| stimulus:
+|   sortable: ul {'Garden Path': reflections}
+|     li editable_text: :name
+p Current reflection binding: #{reflections} 
+----------------------------------------------------
+File: ./app/views/dsl_tests/_toggle_panel.slim
+----------------------------------------------------
+| stimulus:
+|   toggle_panel: div 'The Garden'
+|     p A simple toggle panel content. 
+----------------------------------------------------
+File: ./app/views/dsl_tests/_editable_list.slim
+----------------------------------------------------
+| stimulus:
+|   editable_list: div :status
+p This tests an editable list field bound to the "status" attribute. 
+----------------------------------------------------
+File: ./app/views/test_dsl.slim
+----------------------------------------------------
+doctype html
+html
+  head
+    title DSL Test Pages
+  body
+    h1 DSL Test Pages
+    ul
+      li: a href="/dsl/toggle_panel" Toggle Panel Test
+      li: a href="/dsl/sortable" Sortable Test
+      li: a href="/dsl/editable_text" Editable Text Test
+      li: a href="/dsl/editable_list" Editable List Test
+      li: a href="/dsl/test_classy" Reflection on the Garden Path
+ 
+end
+
+----------------------------------------------------
+File: ./app/views/slim_filters.slim
+----------------------------------------------------
+doctype html
+html
+  head
+    title Slim Filters
+    link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
+  body
+    .container
+      h1.title Slim Filters
+      ul.content
+        - filters.each do |filter|
+          li = filter.name
+
+----------------------------------------------------
+File: ./app/views/toggle_panel.slim
+----------------------------------------------------
+stimulus:
+  toggle_panel: div 'Sample Toggle Panel'
+    p This panel can be toggled.
+----------------------------------------------------
+File: ./app/views/editable_text.slim
+----------------------------------------------------
+stimulus:
+  editable_text: span :name
+----------------------------------------------------
+File: ./app/views/layout.slim
+----------------------------------------------------
+doctype html
+html
+  head
+    title Abide in Peace
+
+    / ✅ External Dependencies
+    script src="https://unpkg.com/@hotwired/stimulus@3.2.1/dist/stimulus.umd.js" defer
+    script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js" defer
+
+    / ✅ Application Scripts
+    script src="/js/application.js" defer
+    script src="/js/controllers/ui_controllers.js" defer 
+    script src="/js/controllers/server_controller.js" defer
+
+    / ✅ Styles
+    link rel="stylesheet" href="/css/abide.css"
+    link rel="stylesheet" href="/css/tufte.css"
+    link rel="stylesheet" href="/css/sitemap.css"
+  
+  body
+    == yield
+----------------------------------------------------
+File: ./app/views/_partials/_place.slim
+----------------------------------------------------
+div [class="garden" 
+    data-controller="toggle-panel" 
+    data-toggle-panel-target="panel" 
+    data-action="click->toggle-panel#persist"]
+  h2 = place_name.capitalize
+  - collections.each do |collection|
+    == slim :'_partials/_collection', locals: { collection: collection }
+
+----------------------------------------------------
+File: ./app/views/_partials/_collection.slim
+----------------------------------------------------
+div [class="collection"
+  data-controller="sortable server"]
+  ul  id="sortable-list" data-sortable-target="list" data-action="sorted->server#save" 
+    - collection.each do |collection_name, items|
+      h3 = collection_name.capitalize
+      - if items && !items.empty?
+        - items.each do |item|
+          == slim :'_partials/_item', locals: { item: item }
+      - else
+        p No items in this collection.
+----------------------------------------------------
+File: ./app/views/_partials/_item.slim
+----------------------------------------------------
+li [class="item"
+  data-id=item[:id]
+  data-type=(item[:type] || "Unknown")
+  data-status=(item[:status] || "unknown")]
+  
+  div class="item" = item[:name]
+  
+
+----------------------------------------------------
+File: ./app/views/test_ui.slim
+----------------------------------------------------
+div [class="market" 
+    data-controller="toggle-panel" 
+    data-toggle-panel-target="panel" 
+    data-action="click->toggle-panel#persist"]
+  h2 Market
+  p External realities and assets.
+
+div [class="garden" 
+    data-controller="toggle-panel" 
+    data-toggle-panel-target="panel" 
+    data-action="click->toggle-panel#persist"]
+  h2 Garden
+  p Personal strategy and planning.
+
+  ul data-controller="sortable server" data-sortable-target="list" data-action="sorted->server#save"
+    li data-id="1" Item 1
+    li data-id="2" Item 2
+    li data-id="3" Item 3
+
+----------------------------------------------------
+File: ./app/views/dsl.slim
+----------------------------------------------------
+/ app/views/dsl.slim
+doctype html
+html
+  head
+    title Stimulus Parameter Test
+  body
+    h1 Stimulus Filter Parameter Testing
+
+    h2 Trial by error
+
+    stimulus:
+      div toggle_panel='The Garden'
+        p Being ...
+        ul sortable=nil
+          li editable_text=:name
+          div editable_list=:status
+        p ... and belonging
+----------------------------------------------------
+File: ./app/views/editable_list.slim
+----------------------------------------------------
+stimulus:
+  editable_list: div :status
+----------------------------------------------------
+File: ./app/views/shared/_section.slim
+----------------------------------------------------
+/ @params title [String] section title
+/ @params content [Block] section content
+section
+  h2= title
+  = yield 
+----------------------------------------------------
+File: ./app/views/shared/_head.slim
+----------------------------------------------------
+head
+  title DSL Classy Test Page
+  css:
+    // ... existing CSS code ... 
+----------------------------------------------------
+File: ./app/helpers/application_helper.rb
+----------------------------------------------------
+module ApplicationHelper
+  include DslHelpers
+end 
+----------------------------------------------------
+File: ./app/helpers/sitemap_helper.rb
+----------------------------------------------------
+# app/helpers/sitemap_helper.rb
+module SitemapHelper
+  def all_routes
+    routes = []
+
+    # Collect routes from the main Sinatra app
+    routes += collect_routes(Sinatra::Application)
+
+    # Ensure mounted apps (like GardenAPI) are included
+    routes += collect_routes(GardenAPI, "/api")
+
+    routes.uniq.sort_by { |r| [r[:method], r[:path]] }
+  end
+
+  private
+
+  def collect_routes(app_class, mount_point = "")
+    return [] unless app_class.respond_to?(:routes)
+
+    app_class.routes.each_with_object([]) do |(method, routes), collected|
+      next if method == "HEAD"
+
+      routes.each do |pattern, _, _|
+        path = mount_point + convert_pattern(pattern)
+        collected << {
+          method: method.upcase,
+          path: path,
+          params: pattern.named_captures.keys
+        }
+      end
+    end
+  end
+
+  def convert_pattern(pattern)
+    pattern.to_s
+      .gsub(/\A\^/, '')        # Remove regex start anchor
+      .gsub(/\$\z/, '')        # Remove regex end anchor
+      .gsub(/\\/, '')          # Remove escape characters
+      .gsub(/\(\?:([^)]+)\)/, '\1') # Remove non-capturing groups
+      .gsub(/:(\w+)/, '{\1}')  # Convert :params to {param} style
+  end
+
+  def extract_mount_point(middleware)
+    return "" unless middleware[1..].any? { |arg| arg.is_a?(Hash) }
+    
+    opts = middleware[1..].find { |arg| arg.is_a?(Hash) }
+    opts[:at] || ""
+  end
+end
+
+----------------------------------------------------
+File: ./app/helpers/dsl_helpers.rb
+----------------------------------------------------
+# file: 'app/helpers/dsl_helpers.rb'
+module DslHelpers
+# This is a placeholder for a more structured StimulusElement class and subclasses
+  DSL_DEFINITIONS = {
+    'toggle_panel'  => { controller: 'toggle-panel',  default_tag: 'div', css_class: 'toggle-panel' },
+    'sortable'      => { controller: 'sortable',      default_tag: 'div', css_class: 'sortable' },
+    'editable_text' => { controller: 'editable-text', default_tag: 'span', css_class: 'editable-text', data_field: true },
+    'editable_list' => { controller: 'editable-list', default_tag: 'div', css_class: 'editable-list', data_field: true }
+  }
+end
+
+----------------------------------------------------
+File: ./app.rb
+----------------------------------------------------
+require "sinatra"
+require "slim"
+require_relative "config/db"
+require_relative "app/models/reflection"
+require_relative "app/controllers/garden_api"
+require_relative "app/helpers/sitemap_helper"
+require_relative "lib/slim_filters"
+
+helpers SitemapHelper
+
+set :views, File.expand_path("app/views", __dir__)
+
+configure do
+  set :protection, except: [:http_origin, :host]
+  set :partial_template_engine, :slim
+  enable :partial_underscores
+  puts "🔧 Sinatra Environment: #{settings.environment}" if settings.development?
+end
+
+get "/" do
+  #@page_data = fetch_page_data
+  slim :index, locals: { reflections: Reflection.all_to_h }
+end
+
+get "/dsl" do
+  slim :dsl, locals: { reflections: Reflection.all_to_h }
+end
+
+# Route for toggle_panel DSL test
+get '/dsl/toggle_panel' do
+  slim :toggle_panel
+end
+
+# Route for sortable DSL test
+get '/dsl/sortable' do
+  # Pass in a local variable 'reflections' that will be used in the data-binding attribute.
+  reflections = "Sample reflection for sortable list"
+  slim :sortable, locals: { reflections: reflections }
+end
+
+# Route for editable_text DSL test
+get '/dsl/editable_text' do
+  slim :editable_text
+end
+
+# Route for editable_list DSL test
+get '/dsl/editable_list' do
+  slim :editable_list
+end
+
+get '/dsl/test_classy' do
+  # For the sortable test we pass a sample value for 'reflections'
+  reflections = "Reflection on Garden Path"
+  slim :test_dsl_classy, locals: { reflections: reflections }
+end
+
+# Master route linking to all DSL test pages
+get '/dsl/test' do
+  slim :test_dsl
+end
+
+get "/test_ui" do
+  slim :test_ui
+end
+
+get '/slim-filters' do
+  # Gather the list of Slim filters
+  puts Slim::Filters.constants
+  filters = Slim::Filters.constants.map do |const_name|
+    Slim::Filters.const_get(const_name)
+  end
+
+  # Render the template with the list of filters
+  slim :slim_filters, locals: { filters: filters }
+end
+
+get "/sitemap" do
+  slim :sitemap, locals: { routes: all_routes }
+end
+
+helpers do
+  def fetch_page_data
+    garden_reflections = Reflection.all_to_h
+    
+    { market: [{ portfolio: [{ id: "market-0", name: "Stocks" },
+                             { id: "market-1", name: "Bonds"  },
+                             { id: "market-2", name: "Real Estate" }]
+              }],
+      garden: garden_reflections }
+  end
+end
+
+----------------------------------------------------
+File: ./Rakefile
+----------------------------------------------------
+require "rake"
+require "sequel"
+require "sqlite3"
+require_relative "config/db"
+
+namespace :db do
+  desc "Run all migrations"
+  task :migrate do
+    Sequel.extension :migration
+    Sequel::Migrator.run(DB, "db/migrations")
+    puts "✅ Migrations complete."
+  end
+
+  desc "Rollback the last migration"
+  task :rollback do
+    Sequel.extension :migration
+    Sequel::Migrator.run(DB, "db/migrations", target: (DB[:schema_migrations].count - 1))
+    puts "🔄 Rolled back the last migration."
+  end
+
+  desc "Reset the database (drop & recreate)"
+  task :reset do
+    puts "⚠️  Resetting database..."
+    File.delete("db/abide.db") if File.exist?("db/abide.db")
+    Rake::Task["db:migrate"].invoke
+    Rake::Task["db:seed"].invoke
+    puts "✅ Database reset complete."
+  end
+
+  desc "Seed the database with initial data"
+  task :seed do
+    require_relative "db/seeds"
+    puts "🌱 Database seeded."
+  end
+end
+
+----------------------------------------------------
+File: ./Gemfile.lock
+----------------------------------------------------
+GEM
+  remote: https://rubygems.org/
+  specs:
+    addressable (2.8.7)
+      public_suffix (>= 2.0.2, < 7.0)
+    base64 (0.2.0)
+    bigdecimal (3.1.9)
+    capybara (3.40.0)
+      addressable
+      matrix
+      mini_mime (>= 0.1.3)
+      nokogiri (~> 1.11)
+      rack (>= 1.6.0)
+      rack-test (>= 0.6.3)
+      regexp_parser (>= 1.5, < 3.0)
+      xpath (~> 3.2)
+    database_cleaner-core (2.0.1)
+    database_cleaner-sequel (2.0.2)
+      database_cleaner-core (~> 2.0.0)
+      sequel
+    diff-lcs (1.5.1)
+    logger (1.6.5)
+    matrix (0.4.2)
+    mini_mime (1.1.5)
+    mini_portile2 (2.8.8)
+    mustermann (3.0.3)
+      ruby2_keywords (~> 0.0.1)
+    nio4r (2.7.4)
+    nokogiri (1.18.2)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
+    nokogiri (1.18.2-x86_64-linux-gnu)
+      racc (~> 1.4)
+    public_suffix (6.0.1)
+    puma (6.6.0)
+      nio4r (~> 2.0)
+    racc (1.8.1)
+    rack (3.1.9)
+    rack-protection (4.1.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+    rack-session (2.1.0)
+      base64 (>= 0.1.0)
+      rack (>= 3.0.0)
+    rack-test (2.2.0)
+      rack (>= 1.3)
+    rackup (2.2.1)
+      rack (>= 3)
+    rake (13.2.1)
+    regexp_parser (2.10.0)
+    rexml (3.4.0)
+    rspec (3.13.0)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.3)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.3)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.2)
+    ruby2_keywords (0.0.5)
+    rubyzip (2.4.1)
+    selenium-webdriver (4.28.0)
+      base64 (~> 0.2)
+      logger (~> 1.4)
+      rexml (~> 3.2, >= 3.2.5)
+      rubyzip (>= 1.2.2, < 3.0)
+      websocket (~> 1.0)
+    sequel (5.89.0)
+      bigdecimal
+    sinatra (4.1.1)
+      logger (>= 1.6.0)
+      mustermann (~> 3.0)
+      rack (>= 3.0.0, < 4)
+      rack-protection (= 4.1.1)
+      rack-session (>= 2.0.0, < 3)
+      tilt (~> 2.0)
+    slim (5.2.1)
+      temple (~> 0.10.0)
+      tilt (>= 2.1.0)
+    sqlite3 (2.5.0)
+      mini_portile2 (~> 2.8.0)
+    sqlite3 (2.5.0-x86_64-linux-gnu)
+    temple (0.10.3)
+    tilt (2.6.0)
+    websocket (1.2.11)
+    xpath (3.2.0)
+      nokogiri (~> 1.8)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  capybara
+  database_cleaner-sequel
+  puma
+  rack-test
+  rackup
+  rake
+  rspec
+  selenium-webdriver
+  sequel (~> 5.89)
+  sinatra
+  slim
+  sqlite3 (~> 2.5)
+
+BUNDLED WITH
+   2.6.3
+
+----------------------------------------------------
+File: ./spec/controllers/sitemap_spec.rb
+----------------------------------------------------
+require_relative "../spec_helper"
+require "rack/test"
+
+RSpec.describe "Sitemap" do
+  include Rack::Test::Methods
+
+  def app
+    Sinatra::Application
+  end
+
+  describe "GET /sitemap" do
+    it "returns sitemap with correct format" do
+      get "/sitemap"
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include("<title>Sitemap</title>")
+      expect(last_response.body).to include("Available Routes")
+    end
+  end
+end
+
+----------------------------------------------------
+File: ./spec/controllers/garden_api_spec.rb
+----------------------------------------------------
+require_relative "../spec_helper"
+require "rack/test"
+
+RSpec.describe GardenAPI do
+  include Rack::Test::Methods
+
+  def app
+    GardenAPI
+  end
+
+  before do
+    @reflection = Reflection.create(
+      name: "Test Reflection",
+      type: "Task",
+      status: "todo"
+    )
+  end
+
+  describe "GET /garden/reflections" do
+    it "returns all reflections in order" do
+      get "/garden/reflections"
+      expect(last_response.status).to eq(200)
+      data = JSON.parse(last_response.body)
+      expect(data.first["name"]).to eq("Test Reflection")
+    end
+  end
+
+  describe "PATCH /garden/reflections/reorder" do
+    it "updates reflection order" do
+      patch "/garden/reflections/reorder", 
+        JSON.generate({ reflections: [{ id: @reflection.id, order: 5 }] }),
+        { "CONTENT_TYPE" => "application/json" }
+
+      expect(last_response.status).to eq(200)
+      expect(@reflection.reload.order).to eq(5)
+    end
+  end
+end
+----------------------------------------------------
+File: ./spec/features/drag_and_drop_spec.rb
+----------------------------------------------------
+require "spec_helper"
+require "capybara/rspec"
+
+RSpec.describe "Drag-and-Drop Reflections", type: :feature, js: true do
+  before do
+    # Clear test DB and add records
+    Reflection.dataset.delete
+
+    @reflection1 = Reflection.create(name: "Reflection A", type: "Task", status: "todo", order: 1)
+    @reflection2 = Reflection.create(name: "Reflection B", type: "Task", status: "todo", order: 2)
+    @reflection3 = Reflection.create(name: "Reflection C", type: "Task", status: "todo", order: 3)
+
+    puts "🔍 DEBUG: Test DB contains reflections: #{Reflection.all.map(&:values).inspect}"
+  end
+
+  it "persists the new order after dragging" do
+    visit "/"
+
+    # Ensure only the reflection names are rendered correctly
+    expect(page).to have_css("div.name", text: "Reflection A")
+    expect(page).to have_css("div.name", text: "Reflection B")
+    expect(page).to have_css("div.name", text: "Reflection C")
+
+    # Simulate drag-and-drop of Reflection C to the top
+    reflection_c = find("li[data-id='#{@reflection3.id}']")
+    reflection_a = find("li[data-id='#{@reflection1.id}']")
+    reflection_c.drag_to(reflection_a)
+
+    # Wait for order update
+    sleep 1
+
+    # Confirm UI updates correctly
+    within ".garden" do
+      names = all("div.name").map(&:text)
+      expect(names).to eq(["Reflection C", "Reflection A", "Reflection B"])
+    end
+
+    # Ensure order is saved in the database
+    updated_reflections = Reflection.order(:order).all
+    puts "🔍 DEBUG: Order after dragging: #{updated_reflections.map(&:values).inspect}"
+
+    expect(updated_reflections[0].id).to eq(@reflection3.id)
+    expect(updated_reflections[1].id).to eq(@reflection1.id)
+    expect(updated_reflections[2].id).to eq(@reflection2.id)
+  end
+end
+
+----------------------------------------------------
+File: ./spec/models/reflection_spec.rb
+----------------------------------------------------
+require_relative "../spec_helper"
+
+RSpec.describe Reflection do
+  let(:valid_attrs) { 
+    { name: "Retirement Plan", type: "Milestone", status: "complete" } 
+  }
+
+  it "requires name, type, and status" do
+    reflection = Reflection.new
+    expect(reflection.valid?).to be false
+    expect(reflection.errors[:name]).to include("is not present")
+    expect(reflection.errors[:type]).to include("is not present")
+    expect(reflection.errors[:status]).to include("is not present")
+  end
+
+  it "validates allowed types" do
+    reflection = Reflection.new(valid_attrs.merge(type: "Invalid"))
+    expect(reflection.valid?).to be false
+    expect(reflection.errors[:type]).to include("is not in range or set: [\"Milestone\", \"Feature\", \"Task\"]")
+  end  
+
+  it "auto-assigns order on creation" do
+    reflection1 = Reflection.create(valid_attrs)
+    reflection2 = Reflection.create(valid_attrs.merge(name: "Another Plan"))
+    expect(reflection2.order).to eq(reflection1.order + 1)
+  end
+end
+----------------------------------------------------
+File: ./spec/spec_helper.rb
+----------------------------------------------------
+ENV['RACK_ENV'] = 'test'
+
+require_relative "../app"
+require "capybara/rspec"
+require "database_cleaner/sequel"
+
+Capybara.app = Sinatra::Application
+
+RSpec.configure do |config|
+  config.before(:suite) do
+    DatabaseCleaner.strategy = :truncation  # ✅ Use truncation instead of transactions
+    DatabaseCleaner.clean_with(:truncation)
+  end
+
+  config.before(:each) do
+    DatabaseCleaner.start
+  end
+
+  config.after(:each) do
+    DatabaseCleaner.clean
+  end
+end
+
+----------------------------------------------------
+File: ./lib/slim_filters.rb
+----------------------------------------------------
+# lib/slim_filters.rb (Corrected on_slim_embedded)
+require_relative "../app/helpers/dsl_helpers"
+
+module Slim
+  class StimulusFilter < Filter
+    DSL_DEFINITIONS = DslHelpers::DSL_DEFINITIONS
+
+    def on_slim_embedded(filter_type, content_ast, ignored_body)
+      # Compile the 'engine' (which seems to contain the actual content)
+      puts "***** on_slim_embedded ***********"
+      puts "type: #{filter_type.inspect}"
+      puts "engine: #{content_ast.inspect}"
+      puts "body: #{ignored_body.inspect}"
+      puts "**********************************"
+
+      compile(content_ast) 
+    end
+
+    def on_multi(*expressions)
+      [:multi, *expressions.map { |exp| compile(exp) }]
+    end
+
+    def on_html_tag(name, attrs, content)
+      attrs = process_dsl_attributes(attrs)
+      [:html, :tag, name, attrs, content ? compile(content) : nil]
+    end
+
+    def on_html_attrs(*attrs)
+      [:html, :attrs, *attrs]
+    end
+
+    def on_html_attr(name, value)
+      [:html, :attr, name, value]
+    end
+
+    def on_static(text)
+      [:static, text]
+    end
+
+    def on_slim_interpolation(text)
+      [:slim, :interpolation, text]
+    end
+
+    private
+
+    def process_dsl_attributes(attrs)
+      # This is a placeholder for interaction with StimulusElement subclasses
+      new_attrs = []
+      dsl_attr_found = false
+
+      attrs.each do |attr|
+        name, value = attr[2], attr[3]
+        if DSL_DEFINITIONS.key?(name)
+          dsl_attr_found = true
+          dsl_def = DSL_DEFINITIONS[name]
+          new_attrs << [:html, :attr, 'data-controller', [:static, dsl_def[:controller]]]
+          new_attrs << [:html, :attr, 'class', [:static, dsl_def[:css_class]]] if dsl_def[:css_class]
+          if dsl_def[:data_field]
+            new_attrs << [:html, :attr, 'data-field', value]
+          elsif value[1].is_a?(String) # Corrected value[1]
+            new_attrs << [:html, :attr, 'data-label', value]
+          end
+        else
+          new_attrs << attr # Keep non-DSL attributes
+        end
+      end
+      dsl_attr_found ? [:html, :attrs, *new_attrs] : [:html, :attrs, *attrs]
+    end
+  end
+end
+
+Slim::Embedded.register(:stimulus, Slim::StimulusFilter)
+----------------------------------------------------
+File: ./config/routes.rb
+----------------------------------------------------
+# DSL Test Routes
+get 'dsl_tests/toggle_panel', to: 'dsl_tests#toggle_panel'
+get 'dsl_tests/sortable', to: 'dsl_tests#sortable'
+get 'dsl_tests/editable_text', to: 'dsl_tests#editable_text'
+get 'dsl_tests/editable_list', to: 'dsl_tests#editable_list' 
+----------------------------------------------------
+File: ./config/db.rb
+----------------------------------------------------
+require "sequel"
+require "sqlite3"
+
+DB_PATH = "db/abide.db"  # ✅ Force a single shared database
+
+DB = Sequel.connect("sqlite://#{DB_PATH}")
+
+begin
+  DB.test_connection
+  puts "✅ Database Connection Established: Using #{DB_PATH}"
+rescue => e
+  puts "❌ Database Connection Failed: #{e.message}"
+  exit 1
+end
+
+Sequel::Model.db = DB
+
+----------------------------------------------------
+File: ./Gemfile
+----------------------------------------------------
+source "https://rubygems.org"
+
+gem "sinatra"
+gem 'rake'
+gem 'puma'
+gem 'rackup'
+gem 'slim'
+
+
+gem "sequel", "~> 5.89"
+gem "sqlite3", "~> 2.5"
+
+group :development, :test do
+  gem "rspec"
+  gem "capybara"
+  gem "rack-test"
+  gem "database_cleaner-sequel"
+  gem 'selenium-webdriver'
+end
+----------------------------------------------------
+File: ./config.ru
+----------------------------------------------------
+require './app' 
+require './app/controllers/garden_api'
+
+map '/' do
+  run Sinatra::Application
+end
+
+map '/api' do
+  run GardenAPI
+end
+
+----------------------------------------------------
+File: ./abide Development Guide.md
+----------------------------------------------------
+## Abide Development Guide: Front-End and Database Interaction
+
+This guide outlines the structure and conventions for front-end development and its interaction with the database in the Abide project. We prioritize DRY (Don't Repeat Yourself), encapsulation, and a clear separation of concerns. We also strive for minimalist, clean JavaScript – the best JavaScript is the least JavaScript.
+
+**Core Technologies:**
+
+*   **Front-End:** Stimulus (for JavaScript behavior), SortableJS (for drag-and-drop), Slim (for templating).
+*   **Back-End:** Sinatra (for API endpoints), Sequel (for database interaction), SQLite (for the database).
+
+**File Structure and Conventions:**
+
+*   **`app/views/layout.slim`:**
+    *   **Purpose:** The main application layout. Defines the HTML structure, includes necessary JavaScript and CSS files, and provides the `yield` point for other views.
+    *   **Conventions:**
+        *   All global JavaScript and CSS inclusions should be here.
+        *   Keep the layout as minimal as possible, focusing on structure, not content.
+        *   Use Slim's syntax for concise and readable templates.
+
+*   **`app/views/index.slim`:**
+    *   **Purpose:** The main application view, rendered at the root (`/`). Displays the "Market," "Main Content," and "Garden" sections.
+    *   **Conventions:**
+        *   Uses partials (`_partials/*.slim`) to build the UI components.
+        *   Fetches data from the back-end via the `@page_data` instance variable, passed from the Sinatra route handler.
+        *   Avoids complex logic; primarily focuses on rendering data.
+
+*   **`app/views/_partials/*.slim`:**
+    *   **Purpose:** Reusable UI components (e.g., `_collection.slim`, `_item.slim`).
+    *   **Conventions:**
+        *   Each partial should represent a single, well-defined UI element.
+        *   Use descriptive names (e.g., `_collection`, `_item`).
+        *   Accept data via `locals` to keep them decoupled from the global scope.
+        *   Avoid complex logic within partials; keep them focused on presentation.
+
+*   **`public/js/application.js`:**
+    * **Purpose:** Initializes Stimulus and provides utility functions.
+    * **Conventions:**
+        * Avoid putting controller logic here.
+        * Use this file to initialize the Stimulus.
+
+*   **`public/js/controllers/ui_controllers.js`:**
+    *   **Purpose:** Contains Stimulus controllers that manage *user interface interactions*.  This file exemplifies our minimalist approach to JavaScript.
+    *   **Conventions:**
+        *   **`toggle-panel` controller:** Manages the visibility of the side panels.
+            *   **Strengths:** Single responsibility, uses targets and actions, handles outside clicks, persistence (pinning), clean separation of concerns.
+        *   **`sortable` controller:** Handles the drag-and-drop reordering within a list. *Dispatches* the `sorted` event with the updated order data.
+            *   **Strengths:** Clear initialization, event handling, data extraction, custom event dispatch, clean disconnect.
+        *   Follow Stimulus naming conventions (e.g., `data-controller`, `data-action`, `data-target`).
+        *   Keep controllers focused on specific UI tasks.  Controllers are concise, readable, and follow Stimulus best practices.
+        * **Future:** Consider separate files per controller for larger applications.
+
+*   **`public/js/controllers/server_controller.js`:**
+    *   **Purpose:** Contains Stimulus controllers that handle *communication with the server*.
+    *   **Conventions:**
+        *   **`server` controller:** *Listens* for the `sorted` event and sends the updated order data to the server via a `PATCH` request.
+        *   This is the *bridge* between front-end actions and back-end data persistence.
+        *   Handles API requests and responses.
+        *   Should *not* directly manipulate the DOM (that's the responsibility of `ui_controllers.js`).
+
+*   **`app/controllers/garden_api.rb`:**
+    *   **Purpose:** Defines the API endpoints for interacting with the `Reflection` model.
+    *   **Conventions:**
+        *   Follows RESTful principles (GET, POST, PATCH, DELETE).
+        *   Handles JSON requests and responses.
+        *   Includes robust error handling (invalid JSON, missing data, database errors).
+        *   Uses Sequel to interact with the database.
+        *   Keeps API logic separate from presentation logic.
+
+*   **`app/models/reflection.rb`:**
+    *   **Purpose:** Represents the `Reflection` data model.
+    *   **Conventions:**
+        *   Uses Sequel for database interaction.
+        *   Defines validation rules (e.g., required fields, allowed values).
+        *   Handles database-related logic (e.g., auto-assigning order).
+        *   Provides methods for data transformation (e.g., `all_to_h`).
+
+**Data Flow (for Reordering):**
+
+1.  User drags an item in the UI (handled by `SortableJS` and `ui_controllers.js`).
+2.  `sortable` controller dispatches a `sorted` event.
+3.  `server` controller catches the event and sends a `PATCH` request to `/api/garden/reflections/reorder`.
+4.  `GardenAPI` handles the request, updating the database via the `Reflection` model.
+5.  Database is updated. The next page load will show the persisted data in the new order.
+
+**Key Principles:**
+
+*   **Separation of Concerns:** Each file has a specific purpose (UI, API, data model).
+*   **Encapsulation:** Stimulus controllers encapsulate UI behavior. Partials encapsulate UI components.
+*   **DRY:** Partials and helpers are used to avoid code duplication.
+*   **Convention over Configuration:** Follow Stimulus and Sinatra conventions to reduce boilerplate and improve readability.
+*   **Test Driven Development:** Changes to code require supporting tests.
+*  **Minimalist JavaScript:** We strive for clean, concise, and minimal JavaScript.
+
+This guide provides a framework for ongoing development, ensuring consistency and maintainability as the Abide project grows.
+
+----------------------------------------------------
+File: ./db/migrations/001_create_reflections.rb
+----------------------------------------------------
+Sequel.migration do
+  change do
+    create_table(:reflections) do
+      primary_key :id
+      String :type, null: false  # Retaining existing type system
+      String :name, null: false
+      Text :description
+      String :status, null: false, default: "todo"  # Retaining status
+      Integer :order, null: false, default: 0
+      DateTime :created_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+      DateTime :updated_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+  end
+end
+
+----------------------------------------------------
+File: ./db/seeds.rb
+----------------------------------------------------
+require_relative "../config/db"
+require_relative "../app/models/reflection"
+
+# Clear existing data first
+Reflection.dataset.delete
+
+puts "Seeding database with reflections..."
+
+milestone = Reflection.create(
+  name: "Foundation Laid",
+  type: "Milestone",
+  status: "complete",
+  order: 1 
+)
+
+feature1 = Reflection.create(
+  name: "Define Data Models",
+  type: "Feature",
+  status: "in-progress",
+  order: 2 
+)
+
+feature2 = Reflection.create(
+  name: "Define Relationships",
+  type: "Feature",
+  status: "in-progress",
+  order: 3
+)
+
+Reflection.create(
+  name: "Create Reflection superclass",
+  type: "Task",
+  status: "todo",
+  order: 4
+)
+
+Reflection.create(
+  name: "Implement Single Table Inheritance (STI)",
+  type: "Task",
+  status: "todo",
+  order: 5
+)
+
+Reflection.create(
+  name: "Link parent-child dependencies",
+  type: "Task",
+  status: "todo",
+  order: 6
+)
+
+puts "Seeding complete."
+

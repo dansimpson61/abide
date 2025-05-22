@@ -1,0 +1,19 @@
+doctype html
+html
+  = render 'shared/head'
+  body
+    header
+      h1 DSL Classy Test Page
+      p Testing DSL filters: toggle_panel, sortable, editable_text, and editable_list.
+    
+    = render layout: 'shared/section', locals: { title: 'Toggle Panel Test' } do
+      = render 'dsl_tests/toggle_panel'
+    
+    = render layout: 'shared/section', locals: { title: 'Sortable Test' } do
+      = render 'dsl_tests/sortable'
+    
+    = render layout: 'shared/section', locals: { title: 'Editable Text Test' } do
+      = render 'dsl_tests/editable_text'
+    
+    = render layout: 'shared/section', locals: { title: 'Editable List Test' } do
+      = render 'dsl_tests/editable_list'

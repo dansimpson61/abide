@@ -1,0 +1,18 @@
+div [class="market" 
+    data-controller="toggle-panel" 
+    data-toggle-panel-target="panel" 
+    data-action="click->toggle-panel#persist"]
+  h2 Market
+  p External realities and assets.
+
+div [class="garden" 
+    data-controller="toggle-panel" 
+    data-toggle-panel-target="panel" 
+    data-action="click->toggle-panel#persist"]
+  h2 Garden
+  p Personal strategy and planning.
+
+  ul data-controller="sortable server" data-sortable-target="list" data-action="sorted->server#save"
+    li data-id="1" Item 1
+    li data-id="2" Item 2
+    li data-id="3" Item 3

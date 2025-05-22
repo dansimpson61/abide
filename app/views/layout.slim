@@ -1,0 +1,21 @@
+doctype html
+html
+  head
+    title Abide in Peace
+
+    / ✅ External Dependencies
+    script src="https://unpkg.com/@hotwired/stimulus@3.2.1/dist/stimulus.umd.js" defer
+    script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js" defer
+
+    / ✅ Application Scripts
+    script src="/js/application.js" defer
+    script src="/js/controllers/ui_controllers.js" defer 
+    script src="/js/controllers/server_controller.js" defer
+
+    / ✅ Styles
+    link rel="stylesheet" href="/css/abide.css"
+    link rel="stylesheet" href="/css/tufte.css"
+    link rel="stylesheet" href="/css/sitemap.css"
+  
+  body
+    == yield

@@ -1,0 +1,17 @@
+doctype html
+html
+  head
+    title Sitemap
+    link rel="stylesheet" href="/css/sitemap.css"
+  body
+    h1 Sitemap: Available Routes (#{routes.count})
+    ul.sitemap-tree
+      - routes.group_by { |route| route[:path].split('/')[1] || 'root' }.each do |section, section_routes|
+        li
+          strong = section.capitalize
+          ul
+            - section_routes.each do |route|
+              li
+                span.method= route[:method]
+                span.path= route[:path]
+                span.params= route[:params].any? ? "(#{route[:params].join(', ')})" : ""

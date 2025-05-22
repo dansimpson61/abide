@@ -17,7 +17,7 @@ class Reflection < Sequel::Model
   end
 
   # ✅ Dataset-Level Transformation Method
-  def self.dataset_to_h
+  def self.all_to_h
     self.order(:order).all.map do |reflection|
       reflection.values.transform_keys(&:to_sym) # Ensures all keys are Symbols for consistency
     end

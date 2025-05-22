@@ -1,0 +1,120 @@
+/* === GLOBAL STYLES === */
+/* body {
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  background-color: #f9f9f9;
+  display: grid;
+  grid-template-columns: 15% auto 40%;
+  grid-template-areas: "market main garden";
+  height: 100vh;
+} */
+
+/* === MARKET STYLES (Left Column) === */
+/* .market {
+  grid-area: market;
+  width: 100%;
+  background: #f4f4f4;
+  padding: 10px;
+  border-right: 2px solid #ccc;
+  overflow-y: auto;
+} */
+
+/* === MAIN CONTENT STYLES === */
+/* .main-content {
+  grid-area: main;
+  padding: 20px;
+  overflow-y: auto;
+} */
+
+/* === GARDEN STYLES (Right Column) === */
+/* .garden {
+  grid-area: garden;
+  width: 100%;
+  background: #e8f5e9;
+  padding: 10px;
+  border-left: 2px solid #ccc;
+  overflow-y: auto;
+} */
+
+/* === Panel Defaults === */
+.market, .garden {
+  position: fixed;
+  top: 0;
+  width: 30%;
+  height: 100vh;
+  transition: transform 0.6s ease-in-out;
+}
+
+/* Market (Left) */
+.market {
+  left: 0;
+  transform: translateX(-95%);
+  border-right: 2px solid #ccc;
+}
+
+/* Garden (Right) */
+.garden {
+  right: 0;
+  transform: translateX(95%);
+  background: #e8f5e9;
+  border-left: 2px solid #ccc;
+}
+
+/* When Hovered */
+.market:hover, .market.visible {
+  transform: translateX(0);
+}
+
+.garden:hover, .garden.visible {
+  transform: translateX(0);
+}
+
+/* When Clicked (Pinned Open) */
+.market.pinned, .garden.pinned {
+  transform: translateX(0);
+}
+
+/* Edge Peek Indicators */
+.market::after, .garden::after {
+  content: "⮜"; /* Left and right arrow indicators */
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  font-size: 20px;
+  color: #444;
+}
+
+.market::after { right: -10px; }
+.garden::after { left: -10px; }
+
+/* 🎨 Row Backgrounds by Type */
+.item[data-type="Milestone"] { background-color: #eef6fc; border-left: 5px solid #007BFF; }
+.item[data-type="Feature"] { background-color: #f3f8ee; border-left: 5px solid #28a745; }
+.item[data-type="Task"] { background-color: #fcf6e5; border-left: 5px solid #ffc107; }
+
+/* Indentation Based on Type */
+.item[data-type="Milestone"] { font-weight: bold; margin-left: 0; width: 80%;}
+.item[data-type="Feature"] { margin-left: 2%; width: 78%;}
+.item[data-type="Task"] { margin-left: 4%; width: 76%;}
+
+/* === Sortable list === */
+li.item {
+  cursor: grab; /* Ensure it's draggable */
+}
+
+/* === RESPONSIVENESS === */
+@media (max-width: 768px) {
+  body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "market"
+      "main"
+      "garden";
+  }
+  .market, .garden {
+    border: none;
+  }
+}
